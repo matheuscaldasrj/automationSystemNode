@@ -1,6 +1,6 @@
 /*
 Automation System.
-Author: mcaldas
+Author: Matheus Caldas
 Final project in electrical engineering at PUC-RIO
 2018.1
  */
@@ -11,10 +11,12 @@ Final project in electrical engineering at PUC-RIO
 
 
 float currentTemperature;
+int lastServoValue = 0;
 
 Servo servo1;
-const char* newtworkName = "xxxx";
-const char* networkPass = "xxxx";
+Servo servo2;
+const char* newtworkName = "VirtuaLineTeu";
+const char* networkPass = "paulo1968martha1969nanda1992teu1994";
 
 // Create an instance of the server
 // specify the port to listen on as an argument
@@ -36,47 +38,23 @@ void setup() {
 
 
   delay(500);
-  digitalWrite(14, 0);
-  delay(10);
-  digitalWrite(12, 0);
-  delay(10);
-  digitalWrite(13, 0);
+  digitalWrite(14, 0);delay(10);
+  digitalWrite(12, 0);delay(10);
+  digitalWrite(13, 0);delay(10);
   delay(500);
-  digitalWrite(14, 1);
-  delay(10);
-  digitalWrite(12, 1);
-  delay(10);
-  digitalWrite(13, 1);
-  delay(1000);
-
-  
+  digitalWrite(14, 1);delay(10);
+  digitalWrite(12, 1);delay(10);
+  digitalWrite(13, 1);delay(10);
   delay(500);
-  digitalWrite(14, 0);
+  digitalWrite(14, 0);delay(10);
+  digitalWrite(12, 0);delay(10);
+  digitalWrite(13, 0);delay(10);
   delay(500);
-  digitalWrite(12, 1);
-  delay(500);
-  digitalWrite(12, 0);
-  delay(500); 
-  digitalWrite(14, 1);
-  delay(500);
-  digitalWrite(14, 0);
-  delay(500);
-  digitalWrite(12, 1);
-  delay(500);
-  digitalWrite(12, 0);
-  delay(500); 
-
-
-  delay(500);
-  digitalWrite(13, 0);
-  delay(500);
-  digitalWrite(13, 1);
-  delay(500); 
+  digitalWrite(14, 1);delay(10);
+  digitalWrite(12, 1);delay(10);
+  digitalWrite(13, 1);delay(10);
   
 
-   //SERVOS
-   //servo1.attach(D6);
-   
   // Connect to WiFi network
   Serial.print("Trying Connecting to newtork: ");
   Serial.print(newtworkName);
@@ -117,20 +95,7 @@ void loop() {
   String val;
   String portNumber;
   
-  if (req.indexOf("/gpio/0") != -1){
-    val = "0";
-    digitalWrite(D5, 0);
-    digitalWrite(D6, 0);
-  }
-  else if (req.indexOf("/gpio/1") != -1){
-    val = "1";
-    digitalWrite(D5, 1);
-    digitalWrite(D6, 1);
-  }
-  else if(req.indexOf("/whois") != -1){
-    val = WiFi.localIP().toString();
-    //servo1.write(180);
-  }else if(req.indexOf("/temperature") != -1) {
+if(req.indexOf("/temperature") != -1) {
     currentTemperature = ((analogRead(0)/1024.0)*(9.5))*10;
     Serial.printf("Temperature: ");
     Serial.println(String(analogRead(0)));
@@ -138,15 +103,12 @@ void loop() {
     Serial.println(currentTemperature);  
     Serial.println((9.5 * analogRead(A0) * 100.0) / 1024);
     val = (String(analogRead(0)*0.322265625));
-  }
-  // /write/digital/1/1
-  else if(req.indexOf("/write/digital/")) {
-       servo1.write(0);
+  } else if(req.indexOf("/digital/write") != -1) {
+       //servo1.write(0);
         
       int firstSpace = req.indexOf(" ");
       int secondSpace = req.lastIndexOf(" ");
       String teste = req.substring(firstSpace + 1,secondSpace);
-      Serial.println("TEEEEESTE\n");
       Serial.println(teste);
       ///write/digital/ has 14 caracteres
       String portNumberAndAction =  teste.substring(15);
@@ -164,6 +126,24 @@ void loop() {
 
       digitalWrite(portNumber.toInt(), action.toInt());
     
+  }
+  else if(req.indexOf("/changeServo") != -1) {
+    Serial.println("Vamos trocar todos os servos");
+
+      if(lastServoValue == 0)
+      {
+        lastServoValue = 180;
+      } else {
+         lastServoValue = 0;
+      }
+       //SERVOS
+     Serial.println("Servo 1\n");
+     Serial.println("Servo value: ");
+     Serial.println(lastServoValue);
+     servo1.attach(D1);
+     delay(500);
+     servo1.write(lastServoValue);
+     servo1.detach();
   }
   else {
     Serial.println("invalid request");
