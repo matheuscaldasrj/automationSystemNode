@@ -104,14 +104,10 @@ if(req.indexOf("/temperature") != -1) {
     Serial.println((9.5 * analogRead(A0) * 100.0) / 1024);
     val = (String(analogRead(0)*0.322265625));
   } else if(req.indexOf("/digital/write") != -1) {
-       //servo1.write(0);
         
-      int firstSpace = req.indexOf(" ");
-      int secondSpace = req.lastIndexOf(" ");
-      String teste = req.substring(firstSpace + 1,secondSpace);
-      Serial.println(teste);
+      String cleanUrl = getCleanURL(req);
       ///write/digital/ has 14 caracteres
-      String portNumberAndAction =  teste.substring(15);
+      String portNumberAndAction =  cleanUrl.substring(15);
       String action = portNumberAndAction.substring(3);
       String portNumber = portNumberAndAction.substring(0,2);
 
@@ -128,19 +124,26 @@ if(req.indexOf("/temperature") != -1) {
     
   }
   else if(req.indexOf("/changeServo") != -1) {
-    Serial.println("Vamos trocar todos os servos");
-
+    
+      ///write/digital/ has 14 caracteres
+      String cleanURL = getCleanURL(req);
+      String portNumber =  cleanURL.substring(13);
+      
+      
       if(lastServoValue == 0)
       {
         lastServoValue = 180;
       } else {
          lastServoValue = 0;
       }
-       //SERVOS
-     Serial.println("Servo 1\n");
+
+     //SERVOS
+     Serial.println("PORT NUMBER: " + portNumber);
      Serial.println("Servo value: ");
      Serial.println(lastServoValue);
-     servo1.attach(D1);
+    
+     servo1.attach(portNumber.toInt());
+     
      delay(500);
      servo1.write(lastServoValue);
      servo1.detach();
@@ -156,10 +159,13 @@ if(req.indexOf("/temperature") != -1) {
 
 
   // Prepare the response
-  String s = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<!DOCTYPE HTML>\r\n";
-  s += "<html>\r\n Valor: ";
+  String s = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n";
+  s += "{\"value\": ";
+  if(val == NULL){
+    val = "\"\"";
+   }
   s += val;
-  s += "\r\n</html>\n";
+  s += "}";
 
   // Send the response to the client
   client.print(s);
@@ -169,4 +175,12 @@ if(req.indexOf("/temperature") != -1) {
   // The client will actually be disconnected 
   // when the function returns and 'client' object is detroyed
 }
+
+String getCleanURL(String url) {
+    //is something like 'POST /changeServo/5 HTTP/1.1'
+    int firstSpace = url.indexOf(" ");
+    int secondSpace = url.lastIndexOf(" ");
+    //and returns something like '/changeServo/5'
+    return url.substring(firstSpace + 1,secondSpace);
+  }
 
