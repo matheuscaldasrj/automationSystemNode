@@ -1,3 +1,4 @@
+
 /*
 Automation System.
 Author: Matheus Caldas
@@ -6,17 +7,46 @@ Final project in electrical engineering at PUC-RIO
  */
 
 
+
 #include <ESP8266WiFi.h>
 #include <Servo.h>
+#include <ESP8266HTTPClient.h>
+
+//TEMPERATURA E UMIDADE
+#include "DHT.h"
+#define DHTTYPE DHT11
+#define dht_dpin 0
+DHT dht(dht_dpin, DHTTYPE); 
 
 
+
+
+//variables
 float currentTemperature;
+float currentHumidity;
 int lastServoValue = 0;
 
+
+//servos
 Servo servo1;
 Servo servo2;
+
+
+#define rainDigitalPin 2
+#define rainAnalogPin A0
+int currentRainValue;
+
+//variable to prevent sending more than one notification
+int isRainNotificationAvailable = 1;
+
+
+//WIFI CONNECTION
+HTTPClient http;
 const char* newtworkName = "VirtuaLineTeu";
 const char* networkPass = "paulo1968martha1969nanda1992teu1994";
+String serverIp = "http://192.168.0.199:9082/automation/notification";
+
+
 
 // Create an instance of the server
 // specify the port to listen on as an argument
@@ -53,8 +83,10 @@ void setup() {
   digitalWrite(14, 1);delay(10);
   digitalWrite(12, 1);delay(10);
   digitalWrite(13, 1);delay(10);
-  
 
+  //temperature e umidade
+  dht.begin();
+   
   // Connect to WiFi network
   Serial.print("Trying Connecting to newtork: ");
   Serial.print(newtworkName);
@@ -75,6 +107,10 @@ void setup() {
 }
 
 void loop() {
+
+  
+  checkNotifications();
+  
   WiFiClient client = server.available();
   if (!client) {
     return;
@@ -84,6 +120,7 @@ void loop() {
     //waiting while there is no client
     delay(1);
   }
+
   
   // Read the first line of the request
   String req = client.readStringUntil('\r');
@@ -96,14 +133,16 @@ void loop() {
   String portNumber;
   
 if(req.indexOf("/temperature") != -1) {
-    currentTemperature = ((analogRead(0)/1024.0)*(9.5))*10;
-    Serial.printf("Temperature: ");
-    Serial.println(String(analogRead(0)));
-    Serial.println(String(analogRead(0)*0.322265625));
-    Serial.println(currentTemperature);  
-    Serial.println((9.5 * analogRead(A0) * 100.0) / 1024);
-    val = (String(analogRead(0)*0.322265625));
-  } else if(req.indexOf("/digital/write") != -1) {
+    readTemperatureAndHumidity();
+    val = (currentTemperature);
+  } else if(req.indexOf("/humidity") != -1) {
+    readTemperatureAndHumidity();
+    val = (currentHumidity);
+  } else if(req.indexOf("/rain") != -1) {
+    readRain();
+    val = (currentRainValue);
+  }
+  else if(req.indexOf("/digital/write") != -1) {
         
       String cleanUrl = getCleanURL(req);
       ///write/digital/ has 14 caracteres
@@ -184,3 +223,74 @@ String getCleanURL(String url) {
     return url.substring(firstSpace + 1,secondSpace);
   }
 
+
+void checkNotifications() {
+     readRain();
+     Serial.println("Lets check if notification is available");
+     Serial.println("Rain analog pin");
+     Serial.println(currentRainValue);
+   
+    if (currentRainValue > 1000) {
+      isRainNotificationAvailable = 1;
+     }
+    
+    if(isRainNotificationAvailable == 0) {
+      //nothing to be done because
+      //notification has already been sent
+
+      return ;
+    }
+   Serial.println("Lets check if there is a notification");
+   
+
+   Serial.println("Rain analog pin 0");
+   Serial.println(currentRainValue);
+   if(currentRainValue<1000) {
+      int httpCode;
+      String postRequest;
+      Serial.println("Rain analog pin 1");
+      Serial.println(currentRainValue);
+      isRainNotificationAvailable = 0;
+      http.begin(serverIp);
+      http.addHeader("Content-Type", "application/json");
+      postRequest = "{\"message\": ";
+      postRequest += "\"Alerta de Chuva!!\"}";
+      httpCode = http.POST(postRequest);
+      http.end();
+      Serial.println("end\n\n\n\n");
+      
+      Serial.println("httpCode:");
+      Serial.println(httpCode);
+      http.end();   //Close connection
+    
+       //TODO
+       //prevent other notifications, like a timer
+    } else if (rainAnalogPin > 1000) {
+        //has stopped raining
+        Serial.println("Rain analog pin 2");
+        Serial.println(currentRainValue);
+        isRainNotificationAvailable = 1;
+     }
+  
+}
+
+
+void readTemperatureAndHumidity() {
+    currentHumidity = dht.readHumidity();
+    currentTemperature = dht.readTemperature();         
+    Serial.print("Reading temperature\n and humidty...\nCurrent humidity = ");
+    Serial.print(currentHumidity);
+    Serial.print("%  ");
+    Serial.print("temperature = ");
+    Serial.print(currentTemperature); 
+    Serial.println("ºC");
+  
+ }
+
+ void readRain() {
+  currentRainValue = analogRead(rainAnalogPin);
+  Serial.print("Sensor de chuva\n");
+  Serial.println("Valor analogico: ");
+  Serial.println(currentRainValue);
+
+}
