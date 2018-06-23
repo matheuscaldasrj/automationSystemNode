@@ -32,8 +32,10 @@ int lastServoValue = 0;
 Servo servo1;
 Servo servo2;
 
+//sound
+#define soundDigitalPin 4
+
 //rain
-#define rainDigitalPin 2
 #define vibrationDigitalPin 15
 #define rainAnalogPin A0
 int currentRainValue;
@@ -47,7 +49,7 @@ int isVibrationNotificationAvailable = 1;
 HTTPClient http;
 const char* newtworkName = "VirtuaLineTeu";
 const char* networkPass = "paulo1968martha1969nanda1992teu1994";
-String serverIp = "http://192.168.0.199:9082/automation/notification";
+String serverIpNotification = "http://192.168.0.199:9082/automation/notification";
 
 //vibration
 
@@ -72,20 +74,24 @@ void setup() {
   pinMode(13, OUTPUT);
   delay(10);
   pinMode(15 , INPUT);
-
+  delay(10);
+  pinMode(soundDigitalPin, OUTPUT);
 
   delay(500);
   digitalWrite(14, 0); delay(10);
   digitalWrite(12, 0); delay(10);
   digitalWrite(13, 0); delay(10);
+  digitalWrite(soundDigitalPin, 0); delay(10);
   delay(500);
   digitalWrite(14, 1); delay(10);
   digitalWrite(12, 1); delay(10);
   digitalWrite(13, 1); delay(10);
+  digitalWrite(soundDigitalPin, 1); delay(10);
   delay(500);
   digitalWrite(14, 0); delay(10);
   digitalWrite(12, 0); delay(10);
   digitalWrite(13, 0); delay(10);
+  digitalWrite(soundDigitalPin, 0); delay(10);
   delay(500);
   digitalWrite(14, 1); delay(10);
   digitalWrite(12, 1); delay(10);
@@ -148,6 +154,9 @@ void loop() {
   } else if (req.indexOf("/rain") != -1) {
     readRain();
     val = (currentRainValue);
+  } else if (req.indexOf("/stopSound") != -1) {
+    Serial.println("Lets stop SOUND !!!");
+    digitalWrite(soundDigitalPin, 0); delay(10);
   }
   else if (req.indexOf("/digital/write") != -1) {
 
@@ -166,8 +175,19 @@ void loop() {
     Serial.print("action: ");
     Serial.println(action);
 
-    digitalWrite(portNumber.toInt(), action.toInt());
-
+    if(portNumber.toInt() == 12){
+      //relay light is inverted
+      if(action.toInt() == 1) {
+        digitalWrite(portNumber.toInt(), 0);
+      } 
+      else {
+        digitalWrite(portNumber.toInt(), 1);
+      }
+    }
+    else {
+     digitalWrite(portNumber.toInt(), action.toInt());
+    }
+   
   }
   else if (req.indexOf("/changeServo") != -1) {
 
@@ -276,8 +296,7 @@ void readTemperatureAndHumidity() {
 }
 
 void checkVibrationNotification() {
-  readVibration();
-  
+  readVibration();  
 }
 void readRain() {
   currentRainValue = analogRead(rainAnalogPin);
@@ -303,15 +322,14 @@ void readVibration() {
     //notification has already been sent
     return ;
   }
-  Serial.println("Rain analog pin 0");
-  Serial.println(currentRainValue);
-
+  
   if (currentVibrationValue == 1) {
     isVibrationNotificationAvailable = 0;
     sendNotification("Alerta de vibracao");
+    digitalWrite(soundDigitalPin, 1); delay(10);
   } else{
     //has stopped vibration
-    isRainNotificationAvailable = 1;
+    isVibrationNotificationAvailable = 1;
   }
 
 }
@@ -319,7 +337,7 @@ void readVibration() {
 void sendNotification (String message) {
   int httpCode;
   String postRequest;
-  http.begin(serverIp);
+  http.begin(serverIpNotification);
   http.addHeader("Content-Type", "application/json");
   postRequest = "{\"message\": ";
   postRequest += "\"";
