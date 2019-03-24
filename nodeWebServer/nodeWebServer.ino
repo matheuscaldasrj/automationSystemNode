@@ -47,8 +47,8 @@ int isVibrationNotificationAvailable = 1;
 
 //WIFI CONNECTION
 HTTPClient http;
-const char* newtworkName = "VirtuaLineTeu";
-const char* networkPass = "paulo1968martha1969nanda1992teu1994";
+const char* newtworkName = "networkName";
+const char* networkPass = "networkPass";
 String serverIpNotification = "http://192.168.0.199:9082/automation/notification";
 
 //vibration
